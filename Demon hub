@@ -1,492 +1,97 @@
 --[[
-    Demon Hub - Edição Sombria (Compatível com Xeno V6 - Traduzido)
-    Interface baseada na imagem de referência.
-    Atalhos: Shift Direito (Abrir/Fechar) | Delete (Pânico)
+    Demon Hub - Interface Assassina
+    Deleta o visual do Lirp e mantém o motor rodando.
 ]]
 
-local Jogadores = game:GetService("Players")
-local ExecutarServico = game:GetService("RunService")
-local ServicoEntrada = game:GetService("UserInputService")
-local JogadorLocal = Jogadores.LocalPlayer
-local Camera = workspace.CurrentCamera
-local ServicoHttp = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- ============================================================
--- 1. CONFIGURAÇÕES E SALVAMENTO
--- ============================================================
-local Config = {
-    -- Aimbot
-    aimbotAtivo = false, 
-    teclaAimbot = Enum.UserInputType.MouseButton2,
-    aimbotFOV = 120, aimbotSuavidade = 5, aimbotRaio = 300, 
-    checarVisivel = true, checarTime = false,
-    -- ESP
-    nomeESP = false, barraVidaESP = false, distanciaESP = false, distanciaMax = 1200,
-    caixaESP = false, 
-    todosNPCsESP = false, itensCaidos = false, veiculosESP = false,
-    -- Visual
-    brilhoTotal = false, semGrama = false, semNuvens = false, semFolhas = false, semNeblina = false, semMinas = false,
-    -- UI
-    tamanhoTextoESP = 11,
-    corTema = Color3.fromRGB(255, 40, 60),
-    corFundo = Color3.fromRGB(15, 10, 12),
-}
+-- 1. CARREGA O LIRP
+pcall(function()
+    loadstring(game:HttpGet("https://lirp.mrbrainas.workers.dev/Loader", true))()
+end)
 
--- Sistema de Salvar/Carregar Seguro para Xeno
-local function SalvarConfig(nomeSlot)
-    if not writefile then return end
-    local nomeArquivo = "demonhub_" .. tostring(nomeSlot) .. ".json"
-    local dadosSalvar = {}
-    for k, v in pairs(Config) do
-        if typeof(v) == "Color3" then
-            dadosSalvar[k] = {r = v.R, g = v.G, b = v.B, ehCor = true}
-        elseif typeof(v) == "EnumItem" then
-            dadosSalvar[k] = {nome = v.Name, ehEnum = true}
-        else
-            dadosSalvar[k] = v
-        end
-    end
-    pcall(function() writefile(nomeArquivo, ServicoHttp:JSONEncode(dadosSalvar)) end)
-end
+print("Aguardando Lirp carregar... Se a tela de Key aparecer, preencha.")
+task.wait(12) -- Tempo para você colocar a Key do Lirp caso ele peça
 
-local function CarregarConfig(nomeSlot)
-    if not readfile or not isfile then return end
-    local nomeArquivo = "demonhub_" .. tostring(nomeSlot) .. ".json"
-    if isfile(nomeArquivo) then
+-- 2. ASSASSINATO VISUAL DO LIRP
+-- Vamos varrer a tela e deletar tudo que for do Lirp, menos o Demon Hub
+for _, gui in pairs(PlayerGui:GetChildren()) do
+    if (gui:IsA("ScreenGui") or gui:IsA("GuiMain")) and gui.Name ~= "DemonHub" then
+        -- Deleta a interface do Lirp, mas isso não para os scripts dele que já estão na memória
         pcall(function()
-            local dados = ServicoHttp:JSONDecode(readfile(nomeArquivo))
-            for k, v in pairs(dados) do
-                if type(v) == "table" and v.ehCor then
-                    Config[k] = Color3.new(v.r, v.g, v.b)
-                elseif type(v) == "table" and v.ehEnum then
-                    Config[k] = Enum.UserInputType[v.nome] or Enum.KeyCode[v.nome]
-                else
-                    Config[k] = v
-                end
-            end
+            gui:Destroy()
         end)
     end
 end
 
--- ============================================================
--- 2. INTERFACE (UI) - Sistema de Abas
--- ============================================================
-local InterfaceJogador = JogadorLocal:WaitForChild("PlayerGui")
-local InterfacePrincipal = Instance.new("ScreenGui")
-InterfacePrincipal.Name = "DemonHub_Traduzido"
-InterfacePrincipal.ResetOnSpawn = false
-InterfacePrincipal.IgnoreGuiInset = true
-InterfacePrincipal.Parent = InterfaceJogador
+-- 3. CRIA A INTERFACE DO DEMON HUB
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "DemonHub"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.DisplayOrder = 99999
+ScreenGui.Parent = PlayerGui
 
-local QuadroPrincipal = Instance.new("Frame")
-QuadroPrincipal.Size = UDim2.new(0, 600, 0, 450)
-QuadroPrincipal.Position = UDim2.new(0.5, -300, 0.5, -225)
-QuadroPrincipal.BackgroundColor3 = Config.corFundo
-QuadroPrincipal.BorderSizePixel = 0
-QuadroPrincipal.Active = true
-QuadroPrincipal.Draggable = true
-QuadroPrincipal.Visible = false
-QuadroPrincipal.Parent = InterfacePrincipal
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 600, 0, 400)
+MainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
+MainFrame.BackgroundColor3 = Color3.fromRGB(12, 10, 12)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
 
-local cantoPrincipal = Instance.new("UICorner"); cantoPrincipal.CornerRadius = UDim.new(0, 8); cantoPrincipal.Parent = QuadroPrincipal
-local contornoPrincipal = Instance.new("UIStroke"); contornoPrincipal.Color = Config.corTema; contornoPrincipal.Thickness = 1.5; contornoPrincipal.Transparency = 0.3; contornoPrincipal.Parent = QuadroPrincipal
+local mainCorner = Instance.new("UICorner"); mainCorner.CornerRadius = UDim.new(0, 8); mainCorner.Parent = MainFrame
+local mainStroke = Instance.new("UIStroke"); mainStroke.Color = Color3.fromRGB(255, 30, 50); mainStroke.Thickness = 1.5; mainStroke.Parent = MainFrame
 
 -- Cabeçalho
-local Cabecalho = Instance.new("Frame")
-Cabecalho.Size = UDim2.new(1, 0, 0, 50)
-Cabecalho.BackgroundColor3 = Color3.fromRGB(20, 10, 12)
-Cabecalho.BorderSizePixel = 0
-Cabecalho.Parent = QuadroPrincipal
-local cantoCabecalho = Instance.new("UICorner"); cantoCabecalho.CornerRadius = UDim.new(0, 8); cantoCabecalho.Parent = Cabecalho
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 50)
+Header.BackgroundColor3 = Color3.fromRGB(20, 10, 12)
+Header.Parent = MainFrame
+local hc = Instance.new("UICorner"); hc.CornerRadius = UDim.new(0, 8); hc.Parent = Header
 
-local Titulo = Instance.new("TextLabel")
-Titulo.Size = UDim2.new(1, -60, 1, 0); Titulo.Position = UDim2.new(0, 20, 0, 0)
-Titulo.BackgroundTransparency = 1; Titulo.Text = "Demon Hub | EDIÇÃO SOMBRIA"
-Titulo.TextColor3 = Color3.fromRGB(255, 255, 255); Titulo.TextSize = 18
-Titulo.Font = Enum.Font.GothamBold; Titulo.TextXAlignment = Enum.TextXAlignment.Left; Titulo.Parent = Cabecalho
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -60, 1, 0); Title.Position = UDim2.new(0, 20, 0, 0)
+Title.BackgroundTransparency = 1; Title.Text = "Demon Hub | PROJECT DELTA"
+Title.TextColor3 = Color3.fromRGB(255, 30, 50); Title.TextSize = 18
+Title.Font = Enum.Font.GothamBold; Title.TextXAlignment = Enum.TextXAlignment.Left; Title.Parent = Header
 
-local BotaoFechar = Instance.new("TextButton")
-BotaoFechar.Size = UDim2.new(0, 30, 0, 30); BotaoFechar.Position = UDim2.new(1, -45, 0.5, -15)
-BotaoFechar.BackgroundColor3 = Color3.fromRGB(40, 20, 20); BotaoFechar.Text = "X"
-BotaoFechar.TextColor3 = Config.corTema; BotaoFechar.Font = Enum.Font.GothamBold; BotaoFechar.Parent = Cabecalho
-local cantoFechar = Instance.new("UICorner"); cantoFechar.CornerRadius = UDim.new(0, 4); cantoFechar.Parent = BotaoFechar
-BotaoFechar.MouseButton1Click:Connect(function() QuadroPrincipal.Visible = false end)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30); CloseBtn.Position = UDim2.new(1, -45, 0.5, -15)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20); CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 30, 50); CloseBtn.Font = Enum.Font.GothamBold; CloseBtn.Parent = Header
+local cbc = Instance.new("UICorner"); cbc.CornerRadius = UDim.new(0, 4); cbc.Parent = CloseBtn
+CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 
--- Área de Abas
-local BarraAbas = Instance.new("Frame")
-BarraAbas.Size = UDim2.new(1, -20, 0, 35); BarraAbas.Position = UDim2.new(0, 10, 0, 55)
-BarraAbas.BackgroundColor3 = Color3.fromRGB(22, 22, 26); BarraAbas.BorderSizePixel = 0; BarraAbas.Parent = QuadroPrincipal
-local cantoAbas = Instance.new("UICorner"); cantoAbas.CornerRadius = UDim.new(0, 6); cantoAbas.Parent = BarraAbas
-local layoutAbas = Instance.new("UIListLayout"); layoutAbas.FillDirection = Enum.FillDirection.Horizontal; layoutAbas.Parent = BarraAbas
+-- Conteúdo
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1, -20, 1, -70); Content.Position = UDim2.new(0, 10, 0, 60)
+Content.BackgroundTransparency = 1; Content.Parent = MainFrame
+local layout = Instance.new("UIListLayout"); layout.Padding = UDim.new(0, 10); layout.Parent = Content
 
--- Área de Conteúdo
-local AreaConteudo = Instance.new("Frame")
-AreaConteudo.Size = UDim2.new(1, -20, 1, -100)
-AreaConteudo.Position = UDim2.new(0, 10, 0, 95)
-AreaConteudo.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
-AreaConteudo.BorderSizePixel = 0; AreaConteudo.Parent = QuadroPrincipal
-local cantoConteudo = Instance.new("UICorner"); cantoConteudo.CornerRadius = UDim.new(0, 6); cantoConteudo.Parent = AreaConteudo
-local contornoConteudo = Instance.new("UIStroke"); contornoConteudo.Color = Config.corTema; contornoConteudo.Transparency = 0.8; contornoConteudo.Parent = AreaConteudo
+local info = Instance.new("TextLabel")
+info.Size = UDim2.new(1, 0, 0, 50); info.BackgroundColor3 = Color3.fromRGB(20, 20, 22)
+info.Text = "O menu original foi destruído.\nAs funções do Lirp (Aimbot/ESP) continuam ativas!\nUse as teclas de atalho do Lirp para controlar."
+info.TextColor3 = Color3.fromRGB(200, 200, 200); info.TextWrapped = true; info.Font = Enum.Font.Gotham; info.TextSize = 12; info.Parent = Content
+local ic = Instance.new("UICorner"); ic.CornerRadius = UDim.new(0, 4); ic.Parent = info
 
--- Páginas
-local PaginaAimbot = Instance.new("ScrollingFrame")
-PaginaAimbot.Size = UDim2.new(1, -10, 1, -10); PaginaAimbot.Position = UDim2.new(0, 5, 0, 5)
-PaginaAimbot.BackgroundTransparency = 1; PaginaAimbot.ScrollBarThickness = 3; PaginaAimbot.AutomaticCanvasSize = Enum.AutomaticSize.Y; PaginaAimbot.Parent = AreaConteudo
-local layoutAimbot = Instance.new("UIListLayout"); layoutAimbot.Padding = UDim.new(0, 6); layoutAimbot.Parent = PaginaAimbot
+-- Botão Mobile
+local FloatingBtn = Instance.new("TextButton")
+FloatingBtn.Size = UDim2.new(0, 50, 0, 50); FloatingBtn.Position = UDim2.new(1, -70, 0.5, -25)
+FloatingBtn.BackgroundColor3 = Color3.fromRGB(15, 10, 12); FloatingBtn.Text = "DEMON"
+FloatingBtn.TextColor3 = Color3.fromRGB(255, 30, 50); FloatingBtn.Font = Enum.Font.GothamBold
+FloatingBtn.TextSize = 10; FloatingBtn.Active = true; FloatingBtn.Draggable = true
+FloatingBtn.Parent = ScreenGui
+local fbc = Instance.new("UICorner"); fbc.CornerRadius = UDim.new(1, 0); fbc.Parent = FloatingBtn
+local fbs = Instance.new("UIStroke"); fbs.Color = Color3.fromRGB(255, 30, 50); fbs.Thickness = 2; fbs.Parent = FloatingBtn
+FloatingBtn.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
 
-local PaginaESP = Instance.new("ScrollingFrame")
-PaginaESP.Size = UDim2.new(1, -10, 1, -10); PaginaESP.Position = UDim2.new(0, 5, 0, 5)
-PaginaESP.BackgroundTransparency = 1; PaginaESP.ScrollBarThickness = 3; PaginaESP.AutomaticCanvasSize = Enum.AutomaticSize.Y; PaginaESP.Visible = false; PaginaESP.Parent = AreaConteudo
-local layoutESP = Instance.new("UIListLayout"); layoutESP.Padding = UDim.new(0, 6); layoutESP.Parent = PaginaESP
-
-local PaginaVisual = Instance.new("ScrollingFrame")
-PaginaVisual.Size = UDim2.new(1, -10, 1, -10); PaginaVisual.Position = UDim2.new(0, 5, 0, 5)
-PaginaVisual.BackgroundTransparency = 1; PaginaVisual.ScrollBarThickness = 3; PaginaVisual.AutomaticCanvasSize = Enum.AutomaticSize.Y; PaginaVisual.Visible = false; PaginaVisual.Parent = AreaConteudo
-local layoutVisual = Instance.new("UIListLayout"); layoutVisual.Padding = UDim.new(0, 6); layoutVisual.Parent = PaginaVisual
-
-local PaginaConfig = Instance.new("ScrollingFrame")
-PaginaConfig.Size = UDim2.new(1, -10, 1, -10); PaginaConfig.Position = UDim2.new(0, 5, 0, 5)
-PaginaConfig.BackgroundTransparency = 1; PaginaConfig.ScrollBarThickness = 3; PaginaConfig.AutomaticCanvasSize = Enum.AutomaticSize.Y; PaginaConfig.Visible = false; PaginaConfig.Parent = AreaConteudo
-local layoutConfig = Instance.new("UIListLayout"); layoutConfig.Padding = UDim.new(0, 6); layoutConfig.Parent = PaginaConfig
-
--- Botões de Aba
-local function CriarBotaoAba(texto, icone, pagina)
-    local botao = Instance.new("TextButton")
-    botao.Size = UDim2.new(0.25, -2, 1, 0)
-    botao.BackgroundColor3 = Color3.fromRGB(22, 22, 26); botao.BorderSizePixel = 0
-    botao.Text = icone .. "  " .. texto; botao.TextColor3 = Color3.fromRGB(150, 150, 150)
-    botao.Font = Enum.Font.GothamBold; botao.TextSize = 12; botao.Parent = BarraAbas
-    local canto = Instance.new("UICorner"); canto.CornerRadius = UDim.new(0, 4); canto.Parent = botao
-
-    botao.MouseButton1Click:Connect(function()
-        for _, p in ipairs({PaginaAimbot, PaginaESP, PaginaVisual, PaginaConfig}) do p.Visible = false end
-        for _, b in ipairs(BarraAbas:GetChildren()) do
-            if b:IsA("TextButton") then
-                b.BackgroundColor3 = Color3.fromRGB(22, 22, 26); b.TextColor3 = Color3.fromRGB(150, 150, 150)
-            end
-        end
-        pagina.Visible = true
-        botao.BackgroundColor3 = Config.corTema; botao.TextColor3 = Color3.fromRGB(255, 255, 255)
-    end)
-    return botao
-end
-
-local BotaoAbaAimbot = CriarBotaoAba("Aimbot", "[+]", PaginaAimbot)
-local BotaoAbaESP = CriarBotaoAba("ESP", "[O]", PaginaESP)
-local BotaoAbaVisual = CriarBotaoAba("Visual", "[V]", PaginaVisual)
-local BotaoAbaConfig = CriarBotaoAba("Configurações", "[*]", PaginaConfig)
-
--- Funções de UI (Traduzidas)
-local function CriarBotaoAlternar(pai, textoLabel, inicial, ordem, callback)
-    local botao = Instance.new("TextButton")
-    botao.Size = UDim2.new(1, -10, 0, 30); botao.BackgroundColor3 = Color3.fromRGB(15, 15, 18); botao.BorderSizePixel = 0
-    botao.Text = ""; botao.LayoutOrder = ordem; botao.Parent = pai
-    local canto = Instance.new("UICorner"); canto.CornerRadius = UDim.new(0, 4); canto.Parent = botao
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -50, 1, 0); label.Position = UDim2.new(0, 8, 0, 0)
-    label.BackgroundTransparency = 1; label.Text = textoLabel
-    label.TextColor3 = Color3.fromRGB(200, 200, 200); label.TextSize = 11
-    label.Font = Enum.Font.Gotham; label.TextXAlignment = Enum.TextXAlignment.Left; label.Parent = botao
-
-    local fundoSwitch = Instance.new("Frame")
-    fundoSwitch.Size = UDim2.new(0, 30, 0, 16); fundoSwitch.Position = UDim2.new(1, -38, 0.5, -8)
-    fundoSwitch.BackgroundColor3 = inicial and Config.corTema or Color3.fromRGB(50, 50, 50)
-    fundoSwitch.BorderSizePixel = 0; fundoSwitch.Parent = botao
-    local cantoSwitch = Instance.new("UICorner"); cantoSwitch.CornerRadius = UDim.new(1, 0); cantoSwitch.Parent = fundoSwitch
-
-    local bolinha = Instance.new("Frame")
-    bolinha.Size = UDim2.new(0, 12, 0, 12)
-    bolinha.Position = inicial and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)
-    bolinha.BackgroundColor3 = Color3.fromRGB(255, 255, 255); bolinha.BorderSizePixel = 0; bolinha.Parent = fundoSwitch
-    local cantoBolinha = Instance.new("UICorner"); cantoBolinha.CornerRadius = UDim.new(1, 0); cantoBolinha.Parent = bolinha
-
-    local estado = inicial
-    botao.MouseButton1Click:Connect(function()
-        estado = not estado
-        fundoSwitch.BackgroundColor3 = estado and Config.corTema or Color3.fromRGB(50, 50, 50)
-        bolinha.Position = estado and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)
-        if callback then callback(estado) end
-    end)
-end
-
-local function CriarTeclaAtalho(pai, textoLabel, ordem)
-    local botao = Instance.new("TextButton")
-    botao.Size = UDim2.new(1, -10, 0, 30); botao.BackgroundColor3 = Color3.fromRGB(15, 15, 18); botao.BorderSizePixel = 0
-    botao.Text = ""; botao.LayoutOrder = ordem; botao.Parent = pai
-    local canto = Instance.new("UICorner"); canto.CornerRadius = UDim.new(0, 4); canto.Parent = botao
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -70, 1, 0); label.Position = UDim2.new(0, 8, 0, 0)
-    label.BackgroundTransparency = 1; label.Text = textoLabel
-    label.TextColor3 = Color3.fromRGB(200, 200, 200); label.TextSize = 11
-    label.Font = Enum.Font.Gotham; label.TextXAlignment = Enum.TextXAlignment.Left; label.Parent = botao
-
-    local valorLabel = Instance.new("TextLabel")
-    valorLabel.Size = UDim2.new(0, 60, 1, 0); valorLabel.Position = UDim2.new(1, -65, 0, 0)
-    valorLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30); valorLabel.Text = "MB2" -- Botão direito do mouse
-    valorLabel.TextColor3 = Config.corTema; valorLabel.TextSize = 10
-    valorLabel.Font = Enum.Font.GothamBold; valorLabel.Parent = botao
-    local cantoValor = Instance.new("UICorner"); cantoValor.CornerRadius = UDim.new(0, 3); cantoValor.Parent = valorLabel
-
-    local escutando = false
-    botao.MouseButton1Click:Connect(function() escutando = true; valorLabel.Text = "..." end)
-
-    ServicoEntrada.InputBegan:Connect(function(input, processadoPeloJogo)
-        if not escutando then return end
-        if input.UserInputType == Enum.UserInputType.Keyboard or input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.MouseButton2 then
-            escutando = false
-            Config.teclaAimbot = input.KeyCode or input.UserInputType
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then valorLabel.Text = "MB1"
-            elseif input.UserInputType == Enum.UserInputType.MouseButton2 then valorLabel.Text = "MB2"
-            else valorLabel.Text = input.KeyCode.Name end
-        end
-    end)
-end
-
-local function CriarCaixaTexto(pai, placeholder, ordem)
-    local caixa = Instance.new("TextBox")
-    caixa.Size = UDim2.new(1, -10, 0, 30); caixa.BackgroundColor3 = Color3.fromRGB(15, 15, 18); caixa.BorderSizePixel = 0
-    caixa.Text = ""; caixa.PlaceholderText = placeholder; caixa.LayoutOrder = ordem; caixa.Parent = pai
-    caixa.TextColor3 = Color3.fromRGB(255, 255, 255); caixa.TextSize = 11; caixa.Font = Enum.Font.Gotham
-    caixa.TextXAlignment = Enum.TextXAlignment.Left; caixa.ClearTextOnFocus = false
-    local padding = Instance.new("UIPadding"); padding.PaddingLeft = UDim.new(0, 8); padding.Parent = caixa
-    local canto = Instance.new("UICorner"); canto.CornerRadius = UDim.new(0, 4); canto.Parent = caixa
-    return caixa
-end
-
-local function CriarBotao(pai, texto, ordem, callback)
-    local botao = Instance.new("TextButton")
-    botao.Size = UDim2.new(1, -10, 0, 30); botao.BackgroundColor3 = Config.corTema; botao.BorderSizePixel = 0
-    botao.Text = texto; botao.TextColor3 = Color3.fromRGB(255, 255, 255); botao.Font = Enum.Font.GothamBold
-    botao.TextSize = 12; botao.LayoutOrder = ordem; botao.Parent = pai
-    local canto = Instance.new("UICorner"); canto.CornerRadius = UDim.new(0, 4); canto.Parent = botao
-    botao.MouseButton1Click:Connect(callback)
-    return botao
-end
-
--- ============================================================
--- 3. PREENCHENDO AS ABAS
--- ============================================================
--- ABA AIMBOT
-CriarBotaoAlternar(PaginaAimbot, "Ativar Aimbot", Config.aimbotAtivo, 1, function(v) Config.aimbotAtivo = v end)
-CriarTeclaAtalho(PaginaAimbot, "Tecla do Aimbot (Segurar)", 2)
-CriarBotaoAlternar(PaginaAimbot, "Checar Visibilidade (Parede)", Config.checarVisivel, 3, function(v) Config.checarVisivel = v end)
-CriarBotaoAlternar(PaginaAimbot, "Checar Time (Ignorar Aliados)", Config.checarTime, 4, function(v) Config.checarTime = v end)
-
--- ABA ESP
-CriarBotaoAlternar(PaginaESP, "ESP de Nome", Config.nomeESP, 1, function(v) Config.nomeESP = v end)
-CriarBotaoAlternar(PaginaESP, "ESP de Barra de Vida", Config.barraVidaESP, 2, function(v) Config.barraVidaESP = v end)
-CriarBotaoAlternar(PaginaESP, "ESP de Distância", Config.distanciaESP, 3, function(v) Config.distanciaESP = v end)
-CriarBotaoAlternar(PaginaESP, "ESP de Caixa (Chams)", Config.caixaESP, 4, function(v) Config.caixaESP = v end)
-CriarBotaoAlternar(PaginaESP, "ESP de Todos os NPCs", Config.todosNPCsESP, 5, function(v) Config.todosNPCsESP = v end)
-CriarBotaoAlternar(PaginaESP, "ESP de Itens Caídos", Config.itensCaidos, 6, function(v) Config.itensCaidos = v end)
-CriarBotaoAlternar(PaginaESP, "ESP de Veículos", Config.veiculosESP, 7, function(v) Config.veiculosESP = v end)
-
--- ABA VISUAL
-CriarBotaoAlternar(PaginaVisual, "Brilho Total (Fullbright)", Config.brilhoTotal, 1, function(v) 
-    Config.brilhoTotal = v
-    if v then 
-        game.Lighting.Ambient = Color3.fromRGB(255,255,255)
-        game.Lighting.OutdoorAmbient = Color3.fromRGB(255,255,255)
-    else 
-        game.Lighting.Ambient = Color3.fromRGB(70,70,70)
-        game.Lighting.OutdoorAmbient = Color3.fromRGB(128,128,128)
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        MainFrame.Visible = not MainFrame.Visible
     end
 end)
-CriarBotaoAlternar(PaginaVisual, "Sem Grama", Config.semGrama, 2, function(v)
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj.Name == "Grass" and obj:IsA("BasePart") then obj.Transparency = v and 1 or 0 end
-    end
-end)
-CriarBotaoAlternar(PaginaVisual, "Sem Nuvens", Config.semNuvens, 3, function(v)
-    local nuvens = game.Lighting:FindFirstChildOfClass("Clouds")
-    if nuvens then nuvens.Enabled = not v end
-end)
-CriarBotaoAlternar(PaginaVisual, "Sem Folhas", Config.semFolhas, 4, function(v)
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj.Name:lower():find("leaf") or obj.Name:lower():find("foliage") then
-            if obj:IsA("BasePart") then obj.Transparency = v and 1 or 0 end
-        end
-    end
-end)
-CriarBotaoAlternar(PaginaVisual, "Sem Neblina", Config.semNeblina, 5, function(v)
-    game.Lighting.FogEnd = v and 100000 or 1000
-end)
-CriarBotaoAlternar(PaginaVisual, "Sem Minas/Bombas", Config.semMinas, 6, function(v)
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj.Name:lower():find("mine") or obj.Name:lower():find("bomb") then
-            if obj:IsA("BasePart") then obj.Transparency = v and 1 or 0 end
-        end
-    end
-end)
-
--- ABA CONFIGURAÇÕES (Salvar/Carregar)
-local caixaNomeSalvar = CriarCaixaTexto(PaginaConfig, "Nome da Configuração (Ex: main)", 1)
-CriarBotao(PaginaConfig, "SALVAR CONFIGURAÇÃO", 2, function()
-    local slot = caixaNomeSalvar.Text
-    if slot ~= "" then
-        SalvarConfig(slot)
-        caixaNomeSalvar.Text = "Salvo com sucesso!"
-        task.wait(1.5)
-        caixaNomeSalvar.Text = slot
-    else
-        caixaNomeSalvar.Text = "Digite um nome!"
-        task.wait(1.5)
-        caixaNomeSalvar.Text = ""
-    end
-end)
-CriarBotao(PaginaConfig, "CARREGAR CONFIGURAÇÃO", 3, function()
-    local slot = caixaNomeSalvar.Text
-    if slot ~= "" then
-        CarregarConfig(slot)
-        caixaNomeSalvar.Text = "Carregado! Feche e abra o menu."
-    else
-        caixaNomeSalvar.Text = "Digite um nome!"
-        task.wait(1.5)
-        caixaNomeSalvar.Text = ""
-    end
-end)
-
--- Iniciar na aba Aimbot
-BotaoAbaAimbot.MouseButton1Click:Fire()
-
--- ============================================================
--- 4. LÓGICA DO SISTEMA (Aimbot e ESP)
--- ============================================================
-local function EstaVisivel(parteAlvo)
-    if not Config.checarVisivel then return true end
-    local parametrosRaio = RaycastParams.new()
-    parametrosRaio.FilterDescendantsInstances = {JogadorLocal.Character, parteAlvo.Parent}
-    parametrosRaio.FilterType = Enum.RaycastFilterType.Exclude
-    local origem = Camera.CFrame.Position
-    local direcao = (parteAlvo.Position - origem)
-    local resultado = workspace:Raycast(origem, direcao, parametrosRaio)
-    return resultado == nil
-end
-
-local mirando = false
-ServicoEntrada.InputBegan:Connect(function(input, processadoPeloJogo)
-    if processadoPeloJogo then return end
-    if (input.KeyCode == Config.teclaAimbot or input.UserInputType == Config.teclaAimbot) and Config.aimbotAtivo then 
-        mirando = true 
-    end
-end)
-
-ServicoEntrada.InputEnded:Connect(function(input, processadoPeloJogo)
-    if (input.KeyCode == Config.teclaAimbot or input.UserInputType == Config.teclaAimbot) then 
-        mirando = false 
-        ServicoEntrada.MouseBehavior = Enum.MouseBehavior.Default
-    end
-end)
-
-local ArmazemESP = {}
-
-local function CriarESP(jogador)
-    local personagem = jogador.Character
-    if not personagem then return end
-    local cabeca = personagem:FindFirstChild("Head")
-    if not cabeca then return end
-
-    local billboard = Instance.new("BillboardGui")
-    billboard.Name = "DemonESP"; billboard.Size = UDim2.new(0, 200, 0, 50)
-    billboard.StudsOffset = Vector3.new(0, 2.5, 0); billboard.AlwaysOnTop = true
-    billboard.Enabled = false; billboard.Parent = cabeca
-
-    local quadroPrincipal = Instance.new("Frame"); quadroPrincipal.Size = UDim2.new(1, 0, 1, 0); quadroPrincipal.BackgroundTransparency = 1; quadroPrincipal.Parent = billboard
-
-    local labelNome = Instance.new("TextLabel")
-    labelNome.Name = "LabelNome"; labelNome.Size = UDim2.new(1, 0, 0, 15); labelNome.Position = UDim2.new(0, 0, 0, -15)
-    labelNome.BackgroundTransparency = 1; labelNome.Text = jogador.Name; labelNome.TextColor3 = Color3.fromRGB(255, 255, 255)
-    labelNome.TextSize = Config.tamanhoTextoESP; labelNome.Font = Enum.Font.GothamBold; labelNome.TextStrokeTransparency = 0; labelNome.Visible = false; labelNome.Parent = quadroPrincipal
-
-    local labelDistancia = Instance.new("TextLabel")
-    labelDistancia.Name = "LabelDistancia"; labelDistancia.Size = UDim2.new(1, 0, 0, 15); labelDistancia.Position = UDim2.new(0, 0, 1, 2)
-    labelDistancia.BackgroundTransparency = 1; labelDistancia.TextColor3 = Config.corTema; labelDistancia.TextSize = Config.tamanhoTextoESP
-    labelDistancia.Font = Enum.Font.GothamBold; labelDistancia.TextStrokeTransparency = 0; labelDistancia.Visible = false; labelDistancia.Parent = quadroPrincipal
-
-    local barraVida = Instance.new("Frame")
-    barraVida.Name = "BarraVida"; barraVida.Size = UDim2.new(0, 4, 1, 0); barraVida.Position = UDim2.new(1, 5, 0, 0)
-    barraVida.BackgroundColor3 = Color3.fromRGB(0, 255, 0); barraVida.BorderSizePixel = 0; barraVida.Visible = false; barraVida.Parent = quadroPrincipal
-
-    ArmazemESP[jogador] = { Billboard = billboard, Nome = labelNome, Distancia = labelDistancia, Vida = barraVida, Personagem = personagem, Partes = {} }
-end
-
-local function RemoverESP(jogador)
-    if ArmazemESP[jogador] then
-        if ArmazemESP[jogador].Billboard then ArmazemESP[jogador].Billboard:Destroy() end
-        for _, parte in pairs(ArmazemESP[jogador].Partes) do
-            if parte and parte:IsA("BasePart") then parte.Color = Color3.new(1, 1, 1) end
-        end
-        ArmazemESP[jogador] = nil
-    end
-end
-
-ExecutarServico.RenderStepped:Connect(function()
-    if not InterfacePrincipal.Parent then return end
-    local meuPersonagem = JogadorLocal.Character
-    local meuRoot = meuPersonagem and meuPersonagem:FindFirstChild("HumanoidRootPart")
-    
-    -- Lógica do Aimbot
-    if mirando and Config.aimbotAtivo and meuRoot and Camera then
-        local jogadorMaisProximo, distanciaMaisProxima = nil, math.huge
-        for _, jogador in ipairs(Jogadores:GetPlayers()) do
-            if jogador ~= JogadorLocal and jogador.Character and jogador.Character:FindFirstChild("Head") then
-                local cabeca = jogador.Character.Head
-                local distancia = (Camera.CFrame.Position - cabeca.Position).Magnitude
-                if distancia < Config.aimbotRaio and distancia < distanciaMaisProxima and EstaVisivel(cabeca) then
-                    distanciaMaisProxima = distancia; jogadorMaisProximo = cabeca
-                end
-            end
-        end
-        if jogadorMaisProximo then
-            local pontoTela = Camera:WorldToViewportPoint(jogadorMaisProximo.Position)
-            if pontoTela.Z > 0 then
-                ServicoEntrada.MouseBehavior = Enum.MouseBehavior.LockCenter
-                mousemoverel((pontoTela.X - Camera.ViewportSize.X/2) * (Config.aimbotSuavidade / 10), (pontoTela.Y - Camera.ViewportSize.Y/2) * (Config.aimbotSuavidade / 10))
-            end
-        end
-    end
-
-    -- Lógica do ESP
-    for _, jogador in ipairs(Jogadores:GetPlayers()) do
-        if jogador == JogadorLocal or (Config.checarTime and jogador.Team == JogadorLocal.Team) then continue end
-        local personagem = jogador.Character
-        local humanoid = personagem and personagem:FindFirstChildOfClass("Humanoid")
-        local cabeca = personagem and personagem:FindFirstChild("Head")
-        local root = personagem and personagem:FindFirstChild("HumanoidRootPart")
-        
-        if not personagem or not humanoid or humanoid.Health <= 0 or not cabeca or not root then
-            RemoverESP(jogador); continue
-        end
-        
-        if not ArmazemESP[jogador] or ArmazemESP[jogador].Personagem ~= personagem then
-            RemoverESP(jogador); CriarESP(jogador)
-        end
-        
-        local dados = ArmazemESP[jogador]
-        if dados then
-            local distancia = meuRoot and math.floor((meuRoot.Position - root.Position).Magnitude) or 0
-            if distancia > Config.distanciaMax then dados.Billboard.Enabled = false; continue end
-            
-            dados.Billboard.Enabled = Config.nomeESP or Config.distanciaESP or Config.barraVidaESP
-            if dados.Billboard.Enabled then
-                dados.Nome.Visible = Config.nomeESP
-                dados.Nome.Text = jogador.Name
-                dados.Distancia.Visible = Config.distanciaESP
-                dados.Distancia.Text = "[" .. distancia .. "m]"
-                dados.Vida.Visible = Config.barraVidaESP
-                local porcentagemVida = humanoid.Health / humanoid.MaxHealth
-                dados.Vida.Size = UDim2.new(0, 4, porcentagemVida, 0)
-                dados.Vida.Position = UDim2.new(1, 5, 1 - porcentagemVida, 0)
-                dados.Vida.BackgroundColor3 = Color3.fromRGB(255 * (1 - porcentagemVida), 255 * porcentagemVida, 0)
-            end
-
-            if Config.caixaESP then
-                for _, parte in ipairs(personagem:GetChildren()) do
-                    if parte:IsA("BasePart") and parte.Name ~= "HumanoidRootPart" then
-                        parte.Color = Config.corTema
-                        table.insert(dados.Partes, parte)
-                    end
-                end
-            end
