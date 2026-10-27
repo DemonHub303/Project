@@ -1,0 +1,430 @@
+--[[
+    Demon Hub - Xeno Optimized Edition
+    Todas as opções originais, sem uso de Drawing.
+    Atalhos: RightShift (Abrir/Fechar) | Delete (Pânico)
+]]
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- ============================================================
+-- 1. CONFIGURAÇÕES COMPLETAS
+-- ============================================================
+local Config = {
+    -- Aimbot
+    aimbotEnabled = false,
+    aimbotSmoothness = 5,
+    aimbotRadius = 300,
+    visibleCheck = true,
+    teamCheck = false,
+    -- Player ESP
+    nameTagESP = false,
+    healthBarESP = false,
+    distanceESP = false,
+    boxESP = false,
+    skeletonESP = false, 
+    tracerESP = false,
+    -- Security ESP
+    adminESP = false,
+    cheaterESP = false,
+    -- Other ESP
+    droppedItemsESP = false,
+    corpseESP = false,
+    containerESP = false,
+    vehicleESP = false,
+    -- Visual
+    fullbright = false,
+    -- Settings (Visualização)
+    textSize = 12,
+    -- Cores
+    colorTheme = Color3.fromRGB(255, 40, 60),
+    colorBg = Color3.fromRGB(15, 10, 12),
+    adminColor = Color3.fromRGB(255, 0, 0),
+    cheaterColor = Color3.fromRGB(255, 165, 0),
+}
+
+-- ============================================================
+-- 2. INTERFACE (UI) - Sistema de Abas Otimizado
+-- ============================================================
+local isMobile = UserInputService.TouchEnabled
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local MainGui = Instance.new("ScreenGui")
+MainGui.Name = "DemonHub_Optimized"
+MainGui.ResetOnSpawn = false
+MainGui.IgnoreGuiInset = true
+MainGui.Parent = PlayerGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, isMobile and 300 or 650, 0, 400)
+MainFrame.Position = UDim2.new(0.5, isMobile and -150 or -325, 0.5, -200)
+MainFrame.BackgroundColor3 = Config.colorBg
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Visible = false
+MainFrame.Parent = MainGui
+
+local mainCorner = Instance.new("UICorner"); mainCorner.CornerRadius = UDim.new(0, 8); mainCorner.Parent = MainFrame
+local mainStroke = Instance.new("UIStroke"); mainStroke.Color = Config.colorTheme; mainStroke.Thickness = 1.5; mainStroke.Transparency = 0.3; mainStroke.Parent = MainFrame
+
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 40)
+Header.BackgroundColor3 = Color3.fromRGB(20, 10, 12)
+Header.BorderSizePixel = 0
+Header.Parent = MainFrame
+local hc = Instance.new("UICorner"); hc.CornerRadius = UDim.new(0, 8); hc.Parent = Header
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -60, 1, 0); Title.Position = UDim2.new(0, 15, 0, 0)
+Title.BackgroundTransparency = 1; Title.Text = "Demon Hub | Optimized"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255); Title.TextSize = 14
+Title.Font = Enum.Font.GothamBold; Title.TextXAlignment = Enum.TextXAlignment.Left; Title.Parent = Header
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 25, 0, 25); CloseBtn.Position = UDim2.new(1, -30, 0.5, -12.5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20); CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Config.colorTheme; CloseBtn.Font = Enum.Font.GothamBold; CloseBtn.Parent = Header
+local cbc = Instance.new("UICorner"); cbc.CornerRadius = UDim.new(0, 4); cbc.Parent = CloseBtn
+CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
+
+-- Sistema de Abas
+local TabBar = Instance.new("Frame")
+TabBar.Size = UDim2.new(1, -20, 0, 30); TabBar.Position = UDim2.new(0, 10, 0, 45)
+TabBar.BackgroundTransparency = 1; TabBar.Parent = MainFrame
+local TabLayout = Instance.new("UIListLayout"); TabLayout.FillDirection = Enum.FillDirection.Horizontal; TabLayout.Padding = UDim.new(0, 5); TabLayout.Parent = TabBar
+
+local ContentArea = Instance.new("Frame")
+ContentArea.Size = UDim2.new(1, -20, 1, -85); ContentArea.Position = UDim2.new(0, 10, 0, 80)
+ContentArea.BackgroundTransparency = 1; ContentArea.Parent = MainFrame
+
+-- Páginas
+local PageAimbot = Instance.new("ScrollingFrame")
+PageAimbot.Size = UDim2.new(1, 0, 1, 0); PageAimbot.BackgroundTransparency = 1
+PageAimbot.ScrollBarThickness = 3; PageAimbot.AutomaticCanvasSize = Enum.AutomaticSize.Y; PageAimbot.Parent = ContentArea
+local al = Instance.new("UIListLayout"); al.Padding = UDim.new(0, 4); al.Parent = PageAimbot
+
+local PageESP = Instance.new("ScrollingFrame")
+PageESP.Size = UDim2.new(1, 0, 1, 0); PageESP.BackgroundTransparency = 1
+PageESP.ScrollBarThickness = 3; PageESP.AutomaticCanvasSize = Enum.AutomaticSize.Y; PageESP.Visible = false; PageESP.Parent = ContentArea
+local el = Instance.new("UIListLayout"); el.Padding = UDim.new(0, 4); el.Parent = PageESP
+
+local PageSettings = Instance.new("ScrollingFrame")
+PageSettings.Size = UDim2.new(1, 0, 1, 0); PageSettings.BackgroundTransparency = 1
+PageSettings.ScrollBarThickness = 3; PageSettings.AutomaticCanvasSize = Enum.AutomaticSize.Y; PageSettings.Visible = false; PageSettings.Parent = ContentArea
+local sl = Instance.new("UIListLayout"); sl.Padding = UDim.new(0, 4); sl.Parent = PageSettings
+
+-- Botões de Aba
+local TabAimbot = Instance.new("TextButton"); TabAimbot.Size = UDim2.new(0, 80, 1, 0); TabAimbot.Text = "Aimbot"; TabAimbot.Parent = TabBar
+local TabESP = Instance.new("TextButton"); TabESP.Size = UDim2.new(0, 80, 1, 0); TabESP.Text = "ESP"; TabESP.Parent = TabBar
+local TabSettings = Instance.new("TextButton"); TabSettings.Size = UDim2.new(0, 80, 1, 0); TabSettings.Text = "Settings"; TabSettings.Parent = TabBar
+
+for _, btn in ipairs({TabAimbot, TabESP, TabSettings}) do
+    btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25); btn.TextColor3 = Color3.fromRGB(150, 150, 150)
+    btn.Font = Enum.Font.GothamBold; btn.TextSize = 11
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = btn
+end
+
+local function SelectTab(tab, page)
+    PageAimbot.Visible = false; PageESP.Visible = false; PageSettings.Visible = false
+    TabAimbot.BackgroundColor3 = Color3.fromRGB(25, 25, 25); TabAimbot.TextColor3 = Color3.fromRGB(150, 150, 150)
+    TabESP.BackgroundColor3 = Color3.fromRGB(25, 25, 25); TabESP.TextColor3 = Color3.fromRGB(150, 150, 150)
+    TabSettings.BackgroundColor3 = Color3.fromRGB(25, 25, 25); TabSettings.TextColor3 = Color3.fromRGB(150, 150, 150)
+    page.Visible = true
+    tab.BackgroundColor3 = Config.colorTheme; tab.TextColor3 = Color3.fromRGB(255, 255, 255)
+end
+TabAimbot.MouseButton1Click:Connect(function() SelectTab(TabAimbot, PageAimbot) end)
+TabESP.MouseButton1Click:Connect(function() SelectTab(TabESP, PageESP) end)
+TabSettings.MouseButton1Click:Connect(function() SelectTab(TabSettings, PageSettings) end)
+
+-- Funções de Criação de Controles
+local function CreateToggle(parent, text, initial, order, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -5, 0, 26); btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    btn.BorderSizePixel = 0; btn.Text = ""; btn.LayoutOrder = order; btn.Parent = parent
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = btn
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -50, 1, 0); lbl.Position = UDim2.new(0, 8, 0, 0)
+    lbl.BackgroundTransparency = 1; lbl.Text = text
+    lbl.TextColor3 = Color3.fromRGB(200, 200, 200); lbl.TextSize = 11
+    lbl.Font = Enum.Font.Gotham; lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.Parent = btn
+
+    local sw = Instance.new("Frame")
+    sw.Size = UDim2.new(0, 28, 0, 14); sw.Position = UDim2.new(1, -36, 0.5, -7)
+    sw.BackgroundColor3 = initial and Config.colorTheme or Color3.fromRGB(50, 50, 50)
+    sw.BorderSizePixel = 0; sw.Parent = btn
+    local swc = Instance.new("UICorner"); swc.CornerRadius = UDim.new(1, 0); swc.Parent = sw
+
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.new(0, 10, 0, 10)
+    knob.Position = initial and UDim2.new(1, -12, 0.5, -5) or UDim2.new(0, 2, 0.5, -5)
+    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255); knob.BorderSizePixel = 0; knob.Parent = sw
+    local kc = Instance.new("UICorner"); kc.CornerRadius = UDim.new(1, 0); kc.Parent = knob
+
+    local state = initial
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        sw.BackgroundColor3 = state and Config.colorTheme or Color3.fromRGB(50, 50, 50)
+        knob.Position = state and UDim2.new(1, -12, 0.5, -5) or UDim2.new(0, 2, 0.5, -5)
+        if callback then callback(state) end
+    end)
+end
+
+local function CreateLabel(parent, text, order)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, 18); lbl.Text = text; lbl.TextColor3 = Config.colorTheme
+    lbl.BackgroundTransparency = 1; lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 10; lbl.LayoutOrder = order; lbl.Parent = parent
+end
+
+-- ============================================================
+-- 3. PREENCHENDO AS ABAS
+-- ============================================================
+-- ABA AIMBOT
+CreateLabel(PageAimbot, "--- Aimbot Config ---", 1)
+CreateToggle(PageAimbot, "Aimbot (Botão Direito)", Config.aimbotEnabled, 2, function(v) Config.aimbotEnabled = v end)
+CreateToggle(PageAimbot, "Visible Check (Parede)", Config.visibleCheck, 3, function(v) Config.visibleCheck = v end)
+CreateToggle(PageAimbot, "Team Check (Time)", Config.teamCheck, 4, function(v) Config.teamCheck = v end)
+
+-- ABA ESP
+CreateLabel(PageESP, "--- Player ESP ---", 1)
+CreateToggle(PageESP, "NameTag ESP", Config.nameTagESP, 2, function(v) Config.nameTagESP = v end)
+CreateToggle(PageESP, "Health Bar ESP", Config.healthBarESP, 3, function(v) Config.healthBarESP = v end)
+CreateToggle(PageESP, "Distance ESP", Config.distanceESP, 4, function(v) Config.distanceESP = v end)
+CreateToggle(PageESP, "Box ESP (Highlight)", Config.boxESP, 5, function(v) Config.boxESP = v end)
+CreateToggle(PageESP, "Tracer ESP (Linhas)", Config.tracerESP, 6, function(v) Config.tracerESP = v end)
+
+CreateLabel(PageESP, "--- Security ESP ---", 7)
+CreateToggle(PageESP, "Admin ESP", Config.adminESP, 8, function(v) Config.adminESP = v end)
+CreateToggle(PageESP, "Cheater ESP", Config.cheaterESP, 9, function(v) Config.cheaterESP = v end)
+
+CreateLabel(PageESP, "--- Other ESP ---", 10)
+CreateToggle(PageESP, "Dropped Items", Config.droppedItemsESP, 11, function(v) Config.droppedItemsESP = v end)
+CreateToggle(PageESP, "Vehicles", Config.vehicleESP, 12, function(v) Config.vehicleESP = v end)
+
+-- ABA SETTINGS
+CreateLabel(PageSettings, "--- Visual ---", 1)
+CreateToggle(PageSettings, "Fullbright (Clarear)", Config.fullbright, 2, function(v) 
+    Config.fullbright = v
+    if v then
+        game.Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+        game.Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+    else
+        game.Lighting.Ambient = Color3.fromRGB(70, 70, 70)
+        game.Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+    end
+end)
+
+SelectTab(TabAimbot, PageAimbot) -- Aba inicial
+
+-- ============================================================
+-- 4. LÓGICA DO SISTEMA (Aimbot, Detecção e ESP)
+-- ============================================================
+local function isAdmin(plr)
+    local lowerName = plr.Name:lower()
+    if lowerName:find("admin") or lowerName:find("mod") or lowerName:find("owner") then return true end
+    return false
+end
+
+local function isCheater(plr)
+    local char = plr.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum and hum.WalkSpeed > 50 then return true end
+    end
+    return false
+end
+
+local function IsVisible(targetPart)
+    if not Config.visibleCheck then return true end
+    local rayParams = RaycastParams.new()
+    rayParams.FilterDescendantsInstances = {LocalPlayer.Character, targetPart.Parent}
+    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    local origin = Camera.CFrame.Position
+    local direction = (targetPart.Position - origin)
+    local result = workspace:Raycast(origin, direction, rayParams)
+    return result == nil
+end
+
+-- Aimbot
+local aiming = false
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton2 and Config.aimbotEnabled then aiming = true end
+end)
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then aiming = false end
+end)
+
+-- ESP Store
+local ESPStore = {}
+
+local function CreateESP(plr)
+    local char = plr.Character
+    if not char then return end
+    local head = char:FindFirstChild("Head")
+    if not head then return end
+
+    -- Billboard (Nome, Distância, Vida)
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "DemonESP"; billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 2.5, 0); billboard.AlwaysOnTop = true
+    billboard.Enabled = false; billboard.Parent = head
+
+    local mainFrame = Instance.new("Frame"); mainFrame.Size = UDim2.new(1, 0, 1, 0); mainFrame.BackgroundTransparency = 1; mainFrame.Parent = billboard
+
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Name = "NameLabel"; nameLabel.Size = UDim2.new(1, 0, 0, 15); nameLabel.Position = UDim2.new(0, 0, 0, -15)
+    nameLabel.BackgroundTransparency = 1; nameLabel.Text = plr.Name; nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.TextSize = Config.textSize; nameLabel.Font = Enum.Font.GothamBold; nameLabel.TextStrokeTransparency = 0; nameLabel.Visible = false; nameLabel.Parent = mainFrame
+
+    local distLabel = Instance.new("TextLabel")
+    distLabel.Name = "DistLabel"; distLabel.Size = UDim2.new(1, 0, 0, 15); distLabel.Position = UDim2.new(0, 0, 1, 2)
+    distLabel.BackgroundTransparency = 1; distLabel.TextColor3 = Config.colorTheme; distLabel.TextSize = Config.textSize
+    distLabel.Font = Enum.Font.GothamBold; distLabel.TextStrokeTransparency = 0; distLabel.Visible = false; distLabel.Parent = mainFrame
+
+    local healthBar = Instance.new("Frame")
+    healthBar.Name = "HealthBar"; healthBar.Size = UDim2.new(0, 4, 1, 0); healthBar.Position = UDim2.new(1, 5, 0, 0)
+    healthBar.BackgroundColor3 = Color3.fromRGB(0, 255, 0); healthBar.BorderSizePixel = 0; healthBar.Visible = false; healthBar.Parent = mainFrame
+
+    -- Tracer
+    local tracerLine = Instance.new("LineHandleAdornment")
+    tracerLine.Name = "Tracer"; tracerLine.Adornee = head; tracerLine.Thickness = 1.5
+    tracerLine.Color3 = Config.colorTheme; tracerLine.Transparency = 0.4; tracerLine.AlwaysOnTop = true
+    tracerLine.Visible = false; tracerLine.Parent = head
+
+    -- Highlight (Box ESP nativo, super leve)
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "DemonBox"; highlight.Adornee = char
+    highlight.FillTransparency = 1; highlight.OutlineColor = Config.colorTheme
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Enabled = false; highlight.Parent = char
+
+    ESPStore[plr] = { 
+        Billboard = billboard, Name = nameLabel, Dist = distLabel, 
+        Health = healthBar, Tracer = tracerLine, Highlight = highlight, Head = head 
+    }
+end
+
+local function RemoveESP(plr)
+    if ESPStore[plr] then
+        if ESPStore[plr].Billboard then ESPStore[plr].Billboard:Destroy() end
+        if ESPStore[plr].Tracer then ESPStore[plr].Tracer:Destroy() end
+        if ESPStore[plr].Highlight then ESPStore[plr].Highlight:Destroy() end
+        ESPStore[plr] = nil
+    end
+end
+
+-- Loop Principal
+RunService.RenderStepped:Connect(function()
+    if not MainGui.Parent then return end
+    local myChar = LocalPlayer.Character
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    
+    -- Aimbot Logic
+    if aiming and Config.aimbotEnabled and myRoot and Camera then
+        local closestPlr, closestDist = nil, math.huge
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("Head") then
+                if Config.teamCheck and plr.Team == LocalPlayer.Team then continue end
+                local head = plr.Character.Head
+                local dist = (Camera.CFrame.Position - head.Position).Magnitude
+                if dist < Config.aimbotRadius and dist < closestDist and IsVisible(head) then
+                    closestDist = dist; closestPlr = head
+                end
+            end
+        end
+        if closestPlr then
+            local smooth = Config.aimbotSmoothness / 10
+            Camera.CFrame = Camera.CFrame:Lerp(CFrame.lookAt(Camera.CFrame.Position, closestPlr.Position), smooth)
+        end
+    end
+
+    -- ESP Logic
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr == LocalPlayer or (Config.teamCheck and plr.Team == LocalPlayer.Team) then continue end
+        
+        local char = plr.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        local head = char and char:FindFirstChild("Head")
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        
+        if not char or not hum or hum.Health <= 0 or not head or not root then
+            RemoveESP(plr); continue
+        end
+        
+        if not ESPStore[plr] or ESPStore[plr].Billboard.Parent ~= head then
+            RemoveESP(plr); CreateESP(plr)
+        end
+        
+        local data = ESPStore[plr]
+        if data then
+            local dist = myRoot and math.floor((myRoot.Position - root.Position).Magnitude) or 0
+            local plrIsAdmin = Config.adminESP and isAdmin(plr)
+            local plrIsCheater = Config.cheaterESP and isCheater(plr)
+            
+            -- Atualiza Cores
+            local currentColor = plrIsAdmin and Config.adminColor or (plrIsCheater and Config.cheaterColor or Config.colorTheme)
+            
+            data.Highlight.Enabled = Config.boxESP or plrIsAdmin or plrIsCheater
+            data.Highlight.OutlineColor = currentColor
+            
+            data.Billboard.Enabled = Config.nameTagESP or Config.distanceESP or Config.healthBarESP or plrIsAdmin or plrIsCheater
+            
+            if data.Billboard.Enabled then
+                data.Name.Visible = Config.nameTagESP or plrIsAdmin or plrIsCheater
+                if plrIsAdmin then
+                    data.Name.Text = "[ADMIN] " .. plr.Name; data.Name.TextColor3 = Config.adminColor
+                elseif plrIsCheater then
+                    data.Name.Text = "[CHEATER] " .. plr.Name; data.Name.TextColor3 = Config.cheaterColor
+                else
+                    data.Name.Text = plr.Name; data.Name.TextColor3 = Color3.fromRGB(255, 255, 255)
+                end
+                
+                data.Dist.Visible = Config.distanceESP
+                data.Dist.Text = "[" .. dist .. "m]"
+                
+                data.Health.Visible = Config.healthBarESP
+                local hpPct = hum.Health / hum.MaxHealth
+                data.Health.Size = UDim2.new(0, 4, hpPct, 0)
+                data.Health.Position = UDim2.new(1, 5, 1 - hpPct, 0)
+                data.Health.BackgroundColor3 = Color3.fromRGB(255 * (1 - hpPct), 255 * hpPct, 0)
+            end
+
+            -- Tracer
+            data.Tracer.Visible = Config.tracerESP or plrIsAdmin or plrIsCheater
+            if data.Tracer.Visible and myRoot then
+                data.Tracer.Offset = myRoot.CFrame:PointToObjectSpace(myRoot.Position) 
+                data.Tracer.Color3 = currentColor
+            end
+        end
+    end
+end)
+
+Players.PlayerRemoving:Connect(RemoveESP)
+
+-- ============================================================
+-- 5. ATALHOS E BOTÃO MOBILE
+-- ============================================================
+local FloatingBtn = Instance.new("TextButton")
+FloatingBtn.Size = UDim2.new(0, 50, 0, 50); FloatingBtn.Position = UDim2.new(1, -70, 0.5, -25)
+FloatingBtn.BackgroundColor3 = Config.colorBg; FloatingBtn.Text = "DEMON"
+FloatingBtn.TextColor3 = Config.colorTheme; FloatingBtn.Font = Enum.Font.GothamBold
+FloatingBtn.TextSize = 10; FloatingBtn.Active = true; FloatingBtn.Draggable = true
+FloatingBtn.Visible = isMobile; FloatingBtn.Parent = MainGui
+local fbc = Instance.new("UICorner"); fbc.CornerRadius = UDim.new(1, 0); fbc.Parent = FloatingBtn
+local fbs = Instance.new("UIStroke"); fbs.Color = Config.colorTheme; fbs.Thickness = 2; fbs.Parent = FloatingBtn
+FloatingBtn.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
+
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        MainFrame.Visible = not MainFrame.Visible
+    elseif input.KeyCode == Enum.KeyCode.Delete then
+        for plr, _ in pairs(ESPStore) do RemoveESP(plr) end
+        MainGui:Destroy()
+    end
+end)
